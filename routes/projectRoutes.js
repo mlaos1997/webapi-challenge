@@ -33,10 +33,10 @@ router.get('/:id/actions', async(req, res) => {
 
 router.post('/', async(req, res) => {
     try {
-        const project = await projectDb.insert(req.project);
+        const project = await projectDb.insert(req.body);
         res
             .status(200)
-            .json(project);
+            .json({ message: 'post succesful'});
     } catch (err) {
         res
             .status(500)
