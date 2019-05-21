@@ -8,15 +8,30 @@ router.get('/', async(req, res) => {
     res.json(projects);
 });
 
-router.get('/:id', validateProjectId, (req, res) => {
-    res.json(req.project);
+router.get('/:id', async(req, res) => {
+    const {id} = req.params;
+    try {
+        const project = await projectDb.get(id);
+        if (!project) {
+            res
+                .status(404)
+                .json({message: 'Could not find project with ID in database'});
+        }
+        res
+            .status(200)
+            .json(project);
+    } catch (err) {
+        res
+            .status(500)
+            .json({err})
+    }
 });
 
-router.get('/:id/actions', validateProjectId, async(req, res) => {
+router.get('/:id/actions', async(req, res) => {
     res.json(req.project.actions);
 });
 
-router.post('/', validateProjectBody, async(req, res) => {
+router.post('/', async(req, res) => {
     try {
         const project = await projectDb.insert(req.project);
         res
@@ -29,9 +44,10 @@ router.post('/', validateProjectBody, async(req, res) => {
     }
 });
 
-router.put('/:id', validateProjectId, async(req, res) => {
+router.put('/:id', async(req, res) => {
+    const { id } = req.params;
     try {
-        const project = await projectDb.update(req.project.id, req.body);
+        const project = await projectDb.update(id, req.body);
         if (!project || Object.keys(project).length === 0) {
             res
                 .status(400)
@@ -47,9 +63,11 @@ router.put('/:id', validateProjectId, async(req, res) => {
     }
 });
 
-router.delete('/:id', validateProjectId, async(req, res) => {
+router.delete('/:id', async(req, res) => {
+    const { id } = req.params;
+
     try {
-        const deleteProject = await projectDb.remove(req.project.id);
+        const deleteProject = await projectDb.remove(id);
         if (!deleteProject) {
             res
                 .status(400)
@@ -57,48 +75,12 @@ router.delete('/:id', validateProjectId, async(req, res) => {
         }
         res
             .status(200)
-            .json(result);
+            .json({ message: 'project removed from database' });
     } catch (err) {
         res
             .status(500)
             .json({err});
     }
-})
-
-// middleware
-async function validateProjectId(req, res, next) {
-    const {id} = req.params;
-
-    try {
-        const project = await projectDb.get(id);
-
-        if (!project || Object.keys(project).length === 0) {
-            res
-                .status(400)
-                .json({err});
-        }
-        req.project = project;
-    } catch (err) {
-        res
-            .status(500)
-            .json({err});
-    }
-    next();
-};
-
-async function validateProjectBody(req, res, next) {
-    const {name, description} = req.body;
-
-    if (!name || !description) {
-        res
-            .status(400)
-            .json({message: 'please provide name and description'});
-    }
-    req.project = {
-        name,
-        description
-    };
-    next();
-};
+});
 
 module.exports = router;

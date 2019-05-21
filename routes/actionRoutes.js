@@ -21,16 +21,38 @@ router.get('/', async(req, res) => {
     }
 });
 
-router.put('/:id', validateAction, async(req, res) => {
+router.get('/:id', async(req, res) => {
+    const {id} = req.params;
     try {
-        const action = await actionDb.update(req.action.id, req.body);
+        const action = await actionDb.get(id);
+        if (!action) {
+            res
+                .status(404)
+                .json({message: 'No action with ID found'})
+        }
+        res
+            .status(200)
+            .json(action);
+    } catch (err) {
+        res
+            .status(500)
+            .json({err});
+    }
+});
+
+router.put('/:id', async(req, res) => {
+    const {id} = req.params;
+    try {
+        const action = await actionDb.update(id, req.body);
 
         if (!action || Object.keys(action).length === 0) {
             res
                 .status(400)
                 .json({message: 'Unable to update action'});
         }
-        res.json(action);
+        res
+            .status(200)
+            .json(action);
     } catch (err) {
         res
             .status(500)
@@ -38,59 +60,23 @@ router.put('/:id', validateAction, async(req, res) => {
     }
 });
 
-router.delete('/:id', validateActionId, async(req, res) => {
+router.delete('/:id', async(req, res) => {
+    const {id} = req.params;
     try {
-        const deleteAction = await actionDb.remove(req.action.id);
+        const deleteAction = await actionDb.remove(id);
         if (!deleteAction) {
             res
                 .status(400)
                 .json({message: 'Unable to delete that'});
         }
+        res
+            .status(201)
+            .json({message: 'action removed from database'});
     } catch (err) {
         res
             .status(500)
             .json({err})
     }
 });
-
-// middleware
-async function validateActionId(req, res, next) {
-    const {id} = req.params;
-    try {
-        const getId = await actionDB.get(id);
-        if (!getId || Object.keys(action).length === 0) {
-            res
-                .status(400)
-                .json({message: 'could not get ID'})
-        }
-        req.action = action;
-    } catch (err) {
-        res
-            .status(500)
-            .json({err});
-    };
-    next();
-};
-
-async function validateAction(req, res, next) {
-    const {project_id, description, notes} = req.body;
-
-    if (!project_id || !description || !notes) {
-        res
-            .status(400)
-            .json({message: 'Please provide project ID, description, or notes'})
-    };
-
-    const project = await projectDb(project_id);
-
-    if (!project || Object.keys(project).length === 0) {
-        res
-            .status(400)
-            .json({message: 'could not retrieve project from database'});
-    }
-
-    req.action = req.body;
-    next();
-};
 
 module.exports = router;
